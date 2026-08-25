@@ -103,7 +103,8 @@ O arco se desenha ao entrar na tela: o JS mede o `getTotalLength()` do path e an
 
 | Arquivo | Origem | Tratamento |
 |---|---|---|
-| `hero-desktop.jpg` | `IMAGEM NOVA HERO COM BACKGROUND.png` | 1672x941, cena completa do hero no desktop, com o Dr. já dentro dela |
+| `hero-desktop.jpg` | `IMAGEM NOVA HERO COM BACKGROUND.png` | 1672x941 em qualidade 95, cena completa do hero no desktop |
+| `hero-desktop-2x.jpg` | idem | 2560x1441, reamostrada em bicúbica com máscara de nitidez, para telas grandes |
 | `dr-raul-hero.jpg` | `DR RAUL - PARA O HERO.png` | 900px, recorte do Dr. usado **só no mobile**, com máscara de alfa embutida no CSS (ver abaixo) |
 | `dr-raul-retrato.jpg` | `DR. RAUL.png` | 820px, moldura de linha dourada e halo atrás |
 | `centro-cirurgico.jpg` | `ESTRUTURA HOSPITALAR.png` | 1000px, escurecida e com gradação quente, fundindo no preto pela esquerda |
@@ -116,6 +117,26 @@ campo aberto, com tecido e sangue à vista, o que a Resolução CFO-196/2019 ved
 publicidade e o que espanta paciente numa página de conversão. O corte pega só o que
 interessa: a sala, os focos cirúrgicos, os monitores e a equipe paramentada. Se alguém
 trocar por uma versão sem corte, os dois problemas voltam juntos.
+
+**Por que o hero tem duas resoluções.** O arquivo que veio do ChatGPT tem 1672px de
+largura. Numa tela de 1920 o navegador esticava essa imagem e o resultado ficava mole,
+principalmente no rosto. A compressão não era a culpada: em teste lado a lado, q86 e q95
+eram praticamente idênticos no zoom. O problema era o upscale do navegador, que usa
+filtro bilinear.
+
+A solução foi entregar a ampliação pronta em vez de deixar o navegador improvisar:
+
+- `hero-desktop.jpg` (1672px, q95, 131 KB): telas até ~1670 de largura.
+- `hero-desktop-2x.jpg` (2560px, 198 KB): reamostrada em bicúbica de alta qualidade e com
+  máscara de nitidez leve (`amount` 0.55, raio 1px). Telas grandes e retina.
+- O `srcset` com `sizes="100vw"` deixa o navegador escolher, e o `preload` carrega o
+  candidato certo com `imagesrcset` mais `media`.
+
+**O `<picture>` com fallback em GIF de 1x1 é intencional.** A `.hero-bg` fica
+`display:none` no mobile, mas navegador baixa imagem escondida do mesmo jeito. Com o
+`<source media="(min-width: 901px)">`, no celular nenhuma fonte casa e a `img` cai no GIF
+de 1x1 embutido. O `media` no `<link rel="preload">` fecha o outro lado. Resultado: o
+celular baixa zero byte do hero de desktop, e é de lá que vem quase todo o tráfego pago.
 
 **O recorte do Dr. no hero.** `DR RAUL - PARA O HERO.png` já vem sem fundo, com canal
 alfa de verdade. Salvar ele como JPEG achata o alfa em preto e cria um retângulo preto
